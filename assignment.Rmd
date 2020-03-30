@@ -11,9 +11,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Homework 2
 
+```{r}
+library(keras)
+```
+
+```{r}
+library(keras)
+library(here) 
+library(grid)
+library(magick)  # not absolutely necessary
+library(data.table)
+```
+
 ### 1. Fashion MNIST data (10 points)
 
 Take the “Fashion MNIST dataset” where images of fashion items are to be classified in a similar manner to what we saw with handwritten digits (see more here). Images are in exactly the same format as we saw digits: 28x28 pixel grayscale images. The task is to build deep neural net models to predict image classes. The goal is to have as accurate classifier as possible: we are using accuracy as a measure of predictive power.
+
 
 ```{r, eval = FALSE}
 fashion_mnist <- dataset_fashion_mnist()
@@ -25,7 +38,28 @@ y_test <- fashion_mnist$test$y
 
 - Show some example images from the data.
 
+```{r, fig.width=2, fig.height=2}
+show_mnist_image <- function(x) {
+  image(1:28, 1:28, t(x)[,nrow(x):1],col=gray((0:255)/255)) 
+}
+
+show_mnist_image(x_train[18, , ])
+```
+
 - Train a fully connected deep network to predict items.
+
+```{r}
+# reshape
+x_train <- array_reshape(x_train, c(dim(x_train)[1], 784)) 
+x_test <- array_reshape(x_test, c(dim(x_test)[1], 784)) 
+# rescale
+x_train <- x_train / 255
+x_test <- x_test / 255
+
+# one-hot encoding of the target variable
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
 
 - Normalize the data similarly to what we saw with MNIST.
 
