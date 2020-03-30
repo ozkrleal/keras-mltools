@@ -13,7 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(keras)
-
 ```
 
 ```{r}
@@ -27,7 +26,6 @@ library(data.table)
 ### 1. Fashion MNIST data (10 points)
 
 Take the “Fashion MNIST dataset” where images of fashion items are to be classified in a similar manner to what we saw with handwritten digits (see more here). Images are in exactly the same format as we saw digits: 28x28 pixel grayscale images. The task is to build deep neural net models to predict image classes. The goal is to have as accurate classifier as possible: we are using accuracy as a measure of predictive power.
-
 
 ```{r, eval = FALSE}
 fashion_mnist <- dataset_fashion_mnist()
@@ -44,10 +42,12 @@ show_mnist_image <- function(x) {
   image(1:28, 1:28, t(x)[,nrow(x):1],col=gray((0:255)/255)) 
 }
 
-show_mnist_image(x_train[20, , ])
+show_mnist_image(x_train[15, , ])
 ```
 
-- Train a fully connected deep network to predict items.
+The dataset Fashion MNIST dataset also has 10 possible outcomes (labels), so the story doesn't change much as the MNIST numbers worked with before.
+
+- Normalize the data similarly to what we saw with MNIST.
 
 ```{r}
 # reshape
@@ -62,13 +62,12 @@ y_train <- to_categorical(y_train, 10)
 y_test <- to_categorical(y_test, 10)
 ```
 
-- Normalize the data similarly to what we saw with MNIST.
+- Train a fully connected deep network to predict items.
 
 ```{r}
 model <- keras_model_sequential() 
 model %>% 
   layer_dense(units = 128, activation = 'relu', input_shape = c(784)) %>%
-  layer_dropout(rate = 0.4) %>%
   layer_dense(units = 10, activation = 'softmax')
 ```
 
@@ -81,7 +80,7 @@ summary(model)
 ```{r}
 model %>% compile(
   loss = 'categorical_crossentropy',
-  optimizer = optimizer_rmsprop(),
+  optimizer = optimizer_adamax(),
   metrics = c('accuracy')
 )
 ```
@@ -91,17 +90,75 @@ model %>% compile(
 history <- model %>% fit(
   x_train, y_train, 
   epochs = 30, batch_size = 128, 
-  validation_split = 0.3
+  validation_split = 0.2
 )
 ```
 
 - Experiment with network architectures and settings (number of hidden layers, number of nodes, activation functions, dropout, etc.)
 
-- Explain what you have tried, what worked and what did not. Present a final model.
+```{r}
+second_model <- keras_model_sequential() 
+second_model %>% 
+  layer_dense(units = 128, input_shape = c(784)) %>%
+  layer_activation_leaky_relu %>%
+  layer_dropout(rate = 0.4) %>%
+  layer_dense(units = 64) %>%
+  layer_activation_leaky_relu() %>% 
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 32) %>%
+  layer_activation_relu() %>% 
+  layer_dropout(rate = 0.15) %>%
+  layer_dense(units = 10, activation = 'softmax')
+```
 
-- Make sure that you use enough epochs so that the validation error starts flattening out - provide a plot about the training history (plot(history))
+```{r}
+summary(second_model)
+# 1000480 = 784 (input features) * 128 (first layer nodes) + 128 (biases)
+# 
+```
+
+```{r}
+second_model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+# you can supply a validatio nset here in fit
+history_second <- second_model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
+- Explain what you have tried, what worked and what did not. Present a final model. Make sure that you use enough epochs so that the validation error starts flattening out - provide a plot about the training history (plot(history))
+
+Seems like using the ADAMAX optimizer is not working well as the RMSprop optimizer.
+
+```{r}
+plot(history)
+```
+
+Even though the second model has less accuracy, the accuracy was actually 1% higher in the validation set which comparing to the first plot there is a huge gap between train and validation of 7% accuracy.
+
+```{r}
+plot(history_second)
+```
 
 - Evaluate the model on the test set. How does test error compare to validation error?
+
+```{r}
+model %>% evaluate(x_test, y_test)
+```
+
+```{r}
+second_model %>% evaluate(x_test, y_test)
+```
+
+Despite the concern of the accuracies from the first model being so separate, the accuracy on the test set was better for the first model.
 
 - Try building a convolutional neural network and see if you can improve test set performance.
 
