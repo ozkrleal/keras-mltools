@@ -27,7 +27,7 @@ library(data.table)
 
 Take the “Fashion MNIST dataset” where images of fashion items are to be classified in a similar manner to what we saw with handwritten digits (see more here). Images are in exactly the same format as we saw digits: 28x28 pixel grayscale images. The task is to build deep neural net models to predict image classes. The goal is to have as accurate classifier as possible: we are using accuracy as a measure of predictive power.
 
-```{r, eval = FALSE}
+```{r}
 fashion_mnist <- dataset_fashion_mnist()
 x_train <- fashion_mnist$train$x
 y_train <- fashion_mnist$train$y
@@ -158,11 +158,106 @@ model %>% evaluate(x_test, y_test)
 second_model %>% evaluate(x_test, y_test)
 ```
 
-Despite the concern of the accuracies from the first model being so separate, the accuracy on the test set was better for the first model.
+#### Despite the concern of the accuracies from the first model being so separate, the accuracy on the test set was better for the first model.
 
 - Try building a convolutional neural network and see if you can improve test set performance.
 
+```{r}
+x_train <- fashion_mnist$train$x
+y_train <- fashion_mnist$train$y
+x_test <- fashion_mnist$test$x
+y_test <- fashion_mnist$test$y
+
+x_train <- array_reshape(x_train, c(nrow(x_train), 28, 28, 1))
+x_test <- array_reshape(x_test, c(nrow(x_test), 28, 28, 1))
+
+# rescale
+x_train <- x_train / 255
+x_test <- x_test / 255
+
+# one-hot encoding of the target variable
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+```{r}
+cnn_model <- keras_model_sequential() 
+cnn_model %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(28, 28, 1)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 16, activation = 'relu') %>% 
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+```{r}
+summary(cnn_model)
+```
+
+```{r}
+cnn_model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+cnn_history <- cnn_model %>% fit(
+  x_train, y_train, 
+  epochs = 10, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
+```{r}
+cnn_model %>% evaluate(x_test, y_test)
+```
+
 Just like before, experiment with different network architectures, regularization techniques and present your findings
+
+```{r}
+second_cnn_model <- keras_model_sequential() 
+second_cnn_model %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3),
+                input_shape = c(28, 28, 1)) %>%
+  layer_activation_leaky_relu() %>% 
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 16) %>% 
+  layer_activation_leaky_relu() %>% 
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+```{r}
+summary(second_cnn_model)
+```
+
+```{r}
+second_cnn_model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+second_cnn_history <- second_cnn_model %>% fit(
+  x_train, y_train, 
+  epochs = 10, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
+```{r}
+second_cnn_model %>% evaluate(x_test, y_test)
+```
 
 ### 2. Hot dog or not hot dog? (12 points)
 
