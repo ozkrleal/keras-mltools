@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(keras)
+
 ```
 
 ```{r}
@@ -43,7 +44,7 @@ show_mnist_image <- function(x) {
   image(1:28, 1:28, t(x)[,nrow(x):1],col=gray((0:255)/255)) 
 }
 
-show_mnist_image(x_train[18, , ])
+show_mnist_image(x_train[20, , ])
 ```
 
 - Train a fully connected deep network to predict items.
@@ -62,6 +63,37 @@ y_test <- to_categorical(y_test, 10)
 ```
 
 - Normalize the data similarly to what we saw with MNIST.
+
+```{r}
+model <- keras_model_sequential() 
+model %>% 
+  layer_dense(units = 128, activation = 'relu', input_shape = c(784)) %>%
+  layer_dropout(rate = 0.4) %>%
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+```{r}
+summary(model)
+# 1000480 = 784 (input features) * 128 (first layer nodes) + 128 (biases)
+# 
+```
+
+```{r}
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+# you can supply a validatio nset here in fit
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.3
+)
+```
 
 - Experiment with network architectures and settings (number of hidden layers, number of nodes, activation functions, dropout, etc.)
 
