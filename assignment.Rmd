@@ -223,14 +223,14 @@ Just like before, experiment with different network architectures, regularizatio
 ```{r}
 second_cnn_model <- keras_model_sequential() 
 second_cnn_model %>% 
-  layer_conv_2d(filters = 32,
+  layer_conv_2d(filters = 64,
                 kernel_size = c(3, 3),
                 input_shape = c(28, 28, 1)) %>%
   layer_activation_leaky_relu() %>% 
   layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
   layer_dropout(rate = 0.25) %>%
   layer_flatten() %>% 
-  layer_dense(units = 16) %>% 
+  layer_dense(units = 128) %>% 
   layer_activation_leaky_relu() %>% 
   layer_dense(units = 10, activation = 'softmax')
 ```
@@ -250,7 +250,7 @@ second_cnn_model %>% compile(
 ```{r}
 second_cnn_history <- second_cnn_model %>% fit(
   x_train, y_train, 
-  epochs = 10, batch_size = 128, 
+  epochs = 15, batch_size = 128, 
   validation_split = 0.2
 )
 ```
@@ -258,6 +258,7 @@ second_cnn_history <- second_cnn_model %>% fit(
 ```{r}
 second_cnn_model %>% evaluate(x_test, y_test)
 ```
+
 
 ### 2. Hot dog or not hot dog? (12 points)
 
