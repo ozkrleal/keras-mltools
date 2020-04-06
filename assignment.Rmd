@@ -16,7 +16,6 @@ library(keras)
 ```
 
 ```{r}
-library(keras)
 library(here) 
 library(grid)
 library(magick)  # not absolutely necessary
