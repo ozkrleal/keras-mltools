@@ -219,6 +219,8 @@ cnn_model %>% evaluate(x_test, y_test)
 
 Just like before, experiment with different network architectures, regularization techniques and present your findings
 
+This time it will have an activation function of leaky RELU instead of the normal one, and 64 filters instead of 32, and another layer.
+
 ```{r}
 second_cnn_model <- keras_model_sequential() 
 second_cnn_model %>% 
@@ -258,6 +260,46 @@ second_cnn_history <- second_cnn_model %>% fit(
 second_cnn_model %>% evaluate(x_test, y_test)
 ```
 
+Seems like the last CNN model is the outperformer with an accuracy of 90% on the test data.
+From this last model we analyze its findings.
+
+Matrix with mistakes:
+
+```{r}
+predicted_classes_test <- second_cnn_model %>% predict_classes(x_test)
+real_classes_test <- as.numeric(fashion_mnist$test$y)
+
+dt_pred_vs_real <- data.table(predicted = predicted_classes_test, real = real_classes_test)
+
+library(ggplot2)
+ggplot(dt_pred_vs_real[, .N, by = .(predicted, real)], aes(predicted, real)) +
+  geom_tile(aes(fill = N), colour = "white") +
+  scale_x_continuous(breaks = 0:9) +
+  scale_y_continuous(breaks = 0:9) +
+  geom_text(aes(label = sprintf("%1.0f", N)), vjust = 1, color = "white") +
+  scale_fill_viridis_c() +
+  theme_bw() + theme(legend.position = "none")
+
+```
+
+```{r}
+class_names
+```
+
+As we can note, the algorithm performs really good when the classes are completely different, but tends to have a couple mistakes between t-shirt/top and shirt and coat, and sandalas and sneakers and ankle boots. Which even by human categorization it can also lead to some mistakes. 
+
+A 90% accuracy on the test set is good enough to minimize these kind of categorization errors that would happen if a human or a non CNN model did this.
+
+```{r}
+dt_pred_vs_real[, row_number := 1:.N]
+indices_of_mistakes <- dt_pred_vs_real[predicted != real][["row_number"]]
+ix <- indices_of_mistakes[2]
+
+dt_pred_vs_real[row_number == ix]
+show_mnist_image(fashion_mnist$test$x[ix, , ])
+```
+
+This example shows an Ankle boot getting mistaken as a Sandal. 
 
 ### 2. Hot dog or not hot dog? (12 points)
 
@@ -266,6 +308,10 @@ In this problem you are going to predict if a certain image containing food is h
 The data can be found in the course repo and is originally downloaded from here.
 
 - Pre-process data so that it is acceptable by Keras (set folder structure, bring images to the same size, etc).
+
+```{r}
+
+```
 
 - Estimate a convolutional neural network to predict if an image contains a hot dog or not. Evaluate your model on the test set.
 
