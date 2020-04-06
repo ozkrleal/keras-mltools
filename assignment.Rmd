@@ -310,10 +310,81 @@ The data can be found in the course repo and is originally downloaded from here.
 - Pre-process data so that it is acceptable by Keras (set folder structure, bring images to the same size, etc).
 
 ```{r}
+train_datagen = image_data_generator(
+  rescale = 1/255,
+  rotation_range = 40,
+  width_shift_range = 0.2,
+  height_shift_range = 0.2,
+  shear_range = 0.2,
+  zoom_range = 0.2,
+  horizontal_flip = TRUE,
+  fill_mode = "nearest"
+)  
 
+test_datagen <- image_data_generator(rescale = 1/255)  
+```
+
+```{r}
+image_size <- c(150, 150)
+batch_size <- 50
+
+train_generator <- flow_images_from_directory(
+  file.path(here(), "data/train/"), # Target directory  
+  train_datagen,              # Data generator
+  target_size = image_size,  # Resizes all images to 150 × 150
+  batch_size = batch_size,
+  class_mode = "binary"       # binary_crossentropy loss for binary labels
+)
+
+
+test_generator <- flow_images_from_directory(
+  file.path(here(), "data/test/"), # Target directory  
+  test_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
+)
 ```
 
 - Estimate a convolutional neural network to predict if an image contains a hot dog or not. Evaluate your model on the test set.
+
+```{r}
+hot_or_not_model <- keras_model_sequential() 
+hot_or_not_model %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(150, 150, 3)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_conv_2d(filters = 16,
+                kernel_size = c(3, 3), 
+                activation = 'relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_conv_2d(filters = 16,
+                kernel_size = c(3, 3), 
+                activation = 'relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>% 
+  layer_flatten() %>% 
+  layer_dense(units = 8, activation = 'relu') %>% 
+  layer_dense(units = 1, activation = "sigmoid")   # for binary
+
+hot_or_not_model %>% compile(
+  loss = "binary_crossentropy",
+  optimizer = optimizer_rmsprop(lr = 2e-5),
+  metrics = c("accuracy")
+)
+```
+
+```{r}
+
+history <- hot_or_not_model %>% fit_generator(
+  train_generator,
+  steps_per_epoch = 2000 / batch_size,
+  epochs = 30
+)
+
+```
 
 - Could data augmentation techniques help with achieving higher predictive accuracy? Try some augmentations that you think make sense and compare
 
