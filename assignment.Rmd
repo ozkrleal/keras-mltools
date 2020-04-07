@@ -11,11 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Homework 2
 
-```{r}
+```{r, echo = FALSE}
 library(keras)
-```
-
-```{r}
 library(here) 
 library(grid)
 library(magick)  # not absolutely necessary
@@ -36,12 +33,20 @@ y_test <- fashion_mnist$test$y
 
 - Show some example images from the data.
 
-```{r, fig.width=2, fig.height=2}
+```{r}
 show_mnist_image <- function(x) {
   image(1:28, 1:28, t(x)[,nrow(x):1],col=gray((0:255)/255)) 
 }
 
-show_mnist_image(x_train[15, , ])
+show_mnist_image(x_train[23, , ])
+```
+
+```{r}
+show_mnist_image(x_train[12, , ])
+```
+
+```{r}
+show_mnist_image(x_train[28, , ])
 ```
 
 The dataset Fashion MNIST dataset also has 10 possible outcomes (labels), so the story doesn't change much as the MNIST numbers worked with before.
@@ -63,7 +68,7 @@ y_test <- to_categorical(y_test, 10)
 
 - Train a fully connected deep network to predict items.
 
-```{r}
+```{r, warning= FALSE}
 model <- keras_model_sequential() 
 model %>% 
   layer_dense(units = 128, activation = 'relu', input_shape = c(784)) %>%
@@ -283,6 +288,16 @@ ggplot(dt_pred_vs_real[, .N, by = .(predicted, real)], aes(predicted, real)) +
 ```
 
 ```{r}
+class_names = c('T-shirt/top',
+                'Trouser',
+                'Pullover',
+                'Dress',
+                'Coat', 
+                'Sandal',
+                'Shirt',
+                'Sneaker',
+                'Bag',
+                'Ankle boot')
 class_names
 ```
 
@@ -310,21 +325,16 @@ The data can be found in the course repo and is originally downloaded from here.
 - Pre-process data so that it is acceptable by Keras (set folder structure, bring images to the same size, etc).
 
 ```{r}
+# Note that the no data shouldn't be augmented (yet)
 train_datagen = image_data_generator(
   rescale = 1/255,
-  rotation_range = 40,
-  width_shift_range = 0.2,
-  height_shift_range = 0.2,
-  shear_range = 0.2,
-  zoom_range = 0.2,
-  horizontal_flip = TRUE,
-  fill_mode = "nearest"
-)  
+)
+
+
+validation_datagen <- image_data_generator(rescale = 1/255)  
 
 test_datagen <- image_data_generator(rescale = 1/255)  
-```
 
-```{r}
 image_size <- c(150, 150)
 batch_size <- 50
 
@@ -334,6 +344,14 @@ train_generator <- flow_images_from_directory(
   target_size = image_size,  # Resizes all images to 150 × 150
   batch_size = batch_size,
   class_mode = "binary"       # binary_crossentropy loss for binary labels
+)
+
+validation_generator <- flow_images_from_directory(
+  file.path(here(), "data/validation/"),   
+  validation_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
 )
 
 
@@ -377,15 +395,175 @@ hot_or_not_model %>% compile(
 ```
 
 ```{r}
-
 history <- hot_or_not_model %>% fit_generator(
   train_generator,
+  validation_data = validation_generator,
   steps_per_epoch = 2000 / batch_size,
   epochs = 30
 )
+```
 
+```{r}
+plot(history)
+```
+
+```{r}
+hot_or_not_model %>% evaluate_generator(test_generator, steps = 200)
 ```
 
 - Could data augmentation techniques help with achieving higher predictive accuracy? Try some augmentations that you think make sense and compare
 
+```{r}
+train_datagen = image_data_generator(
+  rescale = 1/255,
+  rotation_range = 45,
+  width_shift_range = 0.2,
+  height_shift_range = 0.2,
+  shear_range = 0.2,
+  zoom_range = 0.2,
+  horizontal_flip = TRUE,
+  fill_mode = "nearest"
+)  
+
+train_generator <- flow_images_from_directory(
+  file.path(here(), "data/train/"), # Target directory  
+  train_datagen,              # Data generator
+  target_size = image_size,  # Resizes all images to 150 × 150
+  batch_size = batch_size,
+  class_mode = "binary"       # binary_crossentropy loss for binary labels
+)
+
+validation_generator <- flow_images_from_directory(
+  file.path(here(), "data/validation/"),   
+  validation_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
+)
+
+
+test_generator <- flow_images_from_directory(
+  file.path(here(), "data/test/"), # Target directory  
+  test_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
+)
+```
+
+```{r}
+history_withaugmentation <- hot_or_not_model %>% fit_generator(
+  train_generator,
+  validation_data = validation_generator,
+  steps_per_epoch = 2000 / batch_size,
+  epochs = 30
+)
+```
+
+```{r}
+plot(history_withaugmentation)
+```
+
+Augmentation does help with training and prediction.
+
+```{r}
+hot_or_not_model %>% evaluate_generator(test_generator, steps = 200)
+```
+
 - Try to rely on some pre-built neural networks to aid prediction. Can you achieve a better performance using transfer learning for this problem?
+
+```{r}
+train_datagen = image_data_generator(
+  rescale = 1/255,
+  rotation_range = 45,
+  width_shift_range = 0.2,
+  height_shift_range = 0.2,
+  shear_range = 0.2,
+  zoom_range = 0.2,
+  horizontal_flip = TRUE,
+  fill_mode = "nearest"
+)
+
+# Note that the validation data shouldn't be augmented!
+validation_datagen <- image_data_generator(rescale = 1/255)  
+
+test_datagen <- image_data_generator(rescale = 1/255)  
+
+image_size <- c(128, 128)
+batch_size <- 10  # for speed up
+
+train_generator <- flow_images_from_directory(
+  file.path(here(), "data/train/"), # Target directory  
+  train_datagen,              # Data generator
+  target_size = image_size,  # Resizes all images to 150 × 150
+  batch_size = batch_size,
+  class_mode = "binary"       # binary_crossentropy loss for binary labels
+)
+
+validation_generator <- flow_images_from_directory(
+  file.path(here(), "data/validation/"),   
+  validation_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
+)
+
+test_generator <- flow_images_from_directory(
+  file.path(here(), "data/test/"), # Target directory  
+  test_datagen,
+  target_size = image_size,
+  batch_size = batch_size,
+  class_mode = "binary"
+)
+
+```
+
+```{r}
+# create the base pre-trained model
+base_model <- application_mobilenet_v2(weights = 'imagenet', include_top = FALSE,
+                                    input_shape = c(image_size, 3))
+
+# train only the top layers (which were randomly initialized)
+
+# add our custom layers
+model_with_tl <- keras_model_sequential() %>% 
+  base_model %>% 
+  layer_global_average_pooling_2d() %>% 
+  layer_dense(units = 16, activation = 'relu') %>% 
+  layer_dense(units = 1, activation = 'sigmoid')
+
+# freeze all convolutional mobilenet layers
+freeze_weights(base_model)
+
+# compile the model (should be done *after* setting layers to non-trainable)
+model_with_tl %>% compile(
+  loss = "binary_crossentropy",
+  optimizer = optimizer_rmsprop(),
+  metrics = c("accuracy")
+)
+```
+
+```{r}
+# train the model
+history_of_tl <- model_with_tl %>% fit_generator(
+  train_generator,
+  steps_per_epoch = 2000 / batch_size,
+  epochs = 1,  # takes long time to train more
+  validation_data = validation_generator,
+  validation_steps = 500
+)
+```
+
+```{r}
+plot(history_of_tl)
+```
+
+```{r}
+model_with_tl %>% evaluate_generator(test_generator, steps = 200)
+```
+
+Transfer learning is definitely a thing we should do all the time as long as it is allowed. 
+
+From 50%~ accuracy in 30 epochs to 85%~ accuracy in 1 epoch is a huge improvement.
+
+More information about how to assign class names and plots would be here (out of scope for this assignment) [here](https://cran.r-project.org/web/packages/keras/vignettes/tutorial_basic_classification.html/).
