@@ -1,2 +1,2 @@
 # keras-mltools
-assignment for MLT CEU
+Image Recognition assignments for MLT CEU
