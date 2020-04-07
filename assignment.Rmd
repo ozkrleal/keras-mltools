@@ -324,6 +324,8 @@ In this problem you are going to predict if a certain image containing food is h
 
 The data can be found in the course repo and is originally downloaded from here.
 
+*NOTE: data distribution was changed instead of having 250 images of hot dogs and 250 images of not hot dogs for test, there are 202 + 202 images in test, 48 + 48 in validation, and the 249 + 249 images from the train set are kept in the same place.*
+
 - Pre-process data so that it is acceptable by Keras (set folder structure, bring images to the same size, etc).
 
 ```{r}
