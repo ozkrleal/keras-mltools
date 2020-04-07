@@ -162,7 +162,7 @@ model %>% evaluate(x_test, y_test)
 second_model %>% evaluate(x_test, y_test)
 ```
 
-#### Despite the concern of the accuracies from the first model being so separate, the accuracy on the test set was better for the first model.
+Despite the concern of the accuracies from the first model being so separate, the accuracy on the test set was better for the first model.
 
 - Try building a convolutional neural network and see if you can improve test set performance.
 
@@ -244,6 +244,8 @@ second_cnn_model %>%
 ```{r}
 summary(second_cnn_model)
 ```
+
+We can see how we have many more parameters when adding another layer.
 
 ```{r}
 second_cnn_model %>% compile(
@@ -464,7 +466,7 @@ history_withaugmentation <- hot_or_not_model %>% fit_generator(
 plot(history_withaugmentation)
 ```
 
-Augmentation does help with training and prediction.
+Augmentation does help with training and prediction, in this case, it increases the accuracy by 3%.
 
 ```{r}
 hot_or_not_model %>% evaluate_generator(test_generator, steps = 200)
@@ -562,8 +564,10 @@ plot(history_of_tl)
 model_with_tl %>% evaluate_generator(test_generator, steps = 200)
 ```
 
-Transfer learning is definitely a thing we should do all the time as long as it is allowed. 
+By combining transfer learning and data augmentation we definitely reach better results, they should always be a thing we should do as long as it is possible. Augmentation particuarly works great when there is not too much data to learn from.
 
 From 50%~ accuracy in 30 epochs to 85%~ accuracy in 1 epoch is a huge improvement.
+
+Do not reinvent the wheel!
 
 More information about how to assign class names and plots would be here (out of scope for this assignment) [here](https://cran.r-project.org/web/packages/keras/vignettes/tutorial_basic_classification.html/).
